@@ -500,6 +500,10 @@ buildRequiredPackageLists() {
 				else
 					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libwebp"
 					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libwebp-dev"
+					if test $PHP_MAJMIN_VERSION -ge 801; then
+						buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libavif aom-libs"
+						buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libavif-dev aom-dev"
+					fi
 				fi
 				;;
 			gd@debian)
@@ -511,6 +515,11 @@ buildRequiredPackageLists() {
 				else
 					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libwebp[0-9]+$"
 					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libwebp-dev"
+					if test $PHP_MAJMIN_VERSION -ge 801; then
+						ensureAptSource buster-backports http://deb.debian.org/debian
+						buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libavif[0-9]+$ libaom[0-9]+$"
+						buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libavif-dev libaom-dev"
+					fi
 				fi
 				;;
 			gearman@alpine)
@@ -1128,6 +1137,20 @@ getCompilationProcessorCount() {
 	esac
 }
 
+# Let's be sure there's a specific soruce for APT packages
+#
+# Arguments:
+#   $1: the distribution/category name
+#   $2: the URL of the repository
+#   $3: the archive type (optional, defaults to 'deb')
+#   $4: the component name (optional, defaults to 'main')
+ensureAptSource() {
+	if test -e "/etc/apt/sources.list.d/$1.list"; then
+		return
+	fi
+	printf '%s %s %s %s\n' "${3:-deb}" "$2" "$1" "${4:-main}" >"/etc/apt/sources.list.d/$1.list"
+}
+
 # Install the required APT/APK packages
 #
 # Arguments:
@@ -1376,8 +1399,10 @@ EOF
 				docker-php-ext-configure gd --with-gd --with-jpeg-dir --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir --enable-gd-native-ttf --with-webp-dir
 			elif test $PHP_MAJMIN_VERSION -le 703; then
 				docker-php-ext-configure gd --with-gd --with-jpeg-dir --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir --with-webp-dir
-			else
+			elif test $PHP_MAJMIN_VERSION -le 800; then
 				docker-php-ext-configure gd --enable-gd --with-webp --with-jpeg --with-xpm --with-freetype
+			else
+				docker-php-ext-configure gd --enable-gd --with-webp --with-jpeg --with-xpm --with-freetype --with-avif
 			fi
 			;;
 		gmp)

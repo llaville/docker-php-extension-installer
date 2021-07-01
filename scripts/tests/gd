@@ -32,9 +32,10 @@ $formats = [
     'gd',
 ];
 if (PHP_VERSION_ID >= 70200) {
-    $formats = array_merge($formats, [
-        'bmp',
-    ]);
+    $formats[] = 'bmp';
+    if (PHP_VERSION_ID >= 80100) {
+        $formats[] = 'avif';
+    }
 }
 $tempFile = null;
 $image2 = null;
